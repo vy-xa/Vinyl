@@ -7,7 +7,7 @@ Then, Right click a .vy file, and select open with, and scroll down and click:
 <br>
 <img width="334" alt="image" src="https://github.com/user-attachments/assets/1275bfbb-cd54-4eed-8d94-0800d3af45fc">
 <br>
-Locate the interpreter on your PC, and then select continue.
+Locate the interpreter on your PC, and then select "Always".
 
 # Documentation
 I was going to make docs for this, but I have decided not to as the language is extremely slow in Python.
