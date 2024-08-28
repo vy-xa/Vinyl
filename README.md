@@ -4,7 +4,9 @@ Vinyl is a Python (being converted to rust) language (.vy). The main utilities f
 # How to
 First, download the interpreter (optionally download the source and compile using build.bat)
 Then, Right click a .vy file, and select open with, and scroll down and click:
+<br>
 <img width="334" alt="image" src="https://github.com/user-attachments/assets/1275bfbb-cd54-4eed-8d94-0800d3af45fc">
+<br>
 Locate the interpreter on your PC, and then select continue.
 
 # Documentation
