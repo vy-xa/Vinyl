@@ -9,10 +9,10 @@
 
 2. **Open .vy Files with Vinyl**  
    - Right-click on any `.vy` file, select "Open with," then scroll down and click:
+   - Locate the Vinyl interpreter on your PC and check the "Always" option to set it as the default.
    <br>
    <img width="334" alt="image" src="https://github.com/user-attachments/assets/1275bfbb-cd54-4eed-8d94-0800d3af45fc">
    <br>
-   - Locate the Vinyl interpreter on your PC and check the "Always" option to set it as the default.
 
 ## Documentation
 
