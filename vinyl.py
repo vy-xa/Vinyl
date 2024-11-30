@@ -4,7 +4,6 @@ import time
 
 class Lexer:
     def __init__(self, code):
-        # Remove comments and tokenize input
         code = re.sub(r'#.*', '', code)
         self.tokens = re.findall(
             r'\s*(=>|==|<=|>=|[(),{}:;]|!=|\d+\.\d+|\d+|[-+*/=]|"[^"]*"|true|false|int|float|bool|string|input|wait|print|[A-Za-z_]\w*)',
