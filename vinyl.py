@@ -210,7 +210,7 @@ def display_homepage():
     print("""
 Vinyl Interpreter [v0.2]
 ==========================
-Usage: vinyl <filename.vy>
+Usage: vinyl <filename.vyn>
 
 Features:
 - Variable declarations (int, float, bool, string)
@@ -225,8 +225,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     filename = sys.argv[1]
-    if not filename.endswith('.vy'):
-        print("Error: Only '.vy' files are supported.")
+    if not filename.endswith('.vyn'):
+        print("Error: Only '.vyn' files are supported.")
         sys.exit(2)
 
     interpreter = Interpreter()
