@@ -4,8 +4,12 @@ import time
 
 class Lexer:
     def __init__(self, code):
+        # Remove comments and tokenize input
         code = re.sub(r'#.*', '', code)
-        self.tokens = re.findall(r'\s*(=>|==|<=|>=|[(),{}:;]|==|!=|\d+\.\d+|\d+|[-+*/=]|"[^"]*"|true|false|int|float|bool|string|input|wait|print|[A-Za-z_]\w*)', code)
+        self.tokens = re.findall(
+            r'\s*(=>|==|<=|>=|[(),{}:;]|!=|\d+\.\d+|\d+|[-+*/=]|"[^"]*"|true|false|int|float|bool|string|input|wait|print|[A-Za-z_]\w*)',
+            code
+        )
         self.current = 0
 
     def next_token(self):
@@ -13,8 +17,7 @@ class Lexer:
             token = self.tokens[self.current]
             self.current += 1
             return token
-        else:
-            return None
+        return None
 
 class Parser:
     def __init__(self, lexer):
@@ -25,56 +28,71 @@ class Parser:
         if self.current_token == token_type:
             self.current_token = self.lexer.next_token()
         else:
-            raise Exception(f'Unexpected token: {self.current_token}, expected: {token_type}')
+            raise SyntaxError(f'Unexpected token: {self.current_token}, expected: {token_type}')
 
     def parse(self):
-        result = []
+        statements = []
         while self.current_token is not None:
-            result.append(self.statement())
-        return result
-    
+            statements.append(self.statement())
+        return statements
+
     def statement(self):
         if self.current_token in ('int', 'float', 'bool', 'string'):
-            var_type = self.current_token
-            self.eat(var_type)
-            var_name = self.current_token
-            self.eat(var_name)
-            self.eat('=')
-            expr = self.expression()
-            return ('assign', var_type, var_name, expr)
+            return self.variable_declaration()
         elif self.current_token == 'print':
-            self.eat('print')
-            expr = self.expression()
-            return ('print', expr)
+            return self.print_statement()
         elif self.current_token == 'input':
-            self.eat('input')
-            var_name = self.current_token
-            self.eat(var_name)
-            self.eat('=')
-            return ('input', var_name)
+            return self.input_statement()
         elif self.current_token == 'wait':
-            self.eat('wait')
-            duration = self.current_token
-            self.eat(duration)
-            return ('wait', int(duration))
+            return self.wait_statement()
         else:
-            raise Exception(f'Unexpected statement: {self.current_token}')
+            raise SyntaxError(f'Unexpected statement: {self.current_token}')
+
+    def variable_declaration(self):
+        var_type = self.current_token
+        self.eat(var_type)
+        var_name = self.current_token
+        self.eat(var_name)
+        self.eat('=')
+        expr = self.expression()
+        return ('assign', var_type, var_name, expr)
+
+    def print_statement(self):
+        self.eat('print')
+        expr = self.expression()
+        return ('print', expr)
+
+    def input_statement(self):
+        self.eat('input')
+        var_name = self.current_token
+        self.eat(var_name)
+        self.eat('=')
+        prompt = self.current_token
+        self.eat(prompt)
+        return ('input', var_name, prompt)
+
+    def wait_statement(self):
+        self.eat('wait')
+        duration = self.expression()
+        return ('wait', duration)
 
     def expression(self):
-        result = self.term()
+        left = self.term()
         while self.current_token in ('+', '-', '==', '!=', '>', '<', '>=', '<='):
             op = self.current_token
             self.eat(op)
-            result = (op, result, self.term())
-        return result
+            right = self.term()
+            left = (op, left, right)
+        return left
 
     def term(self):
-        result = self.factor()
+        left = self.factor()
         while self.current_token in ('*', '/'):
             op = self.current_token
             self.eat(op)
-            result = (op, result, self.factor())
-        return result
+            right = self.factor()
+            left = (op, left, right)
+        return left
 
     def factor(self):
         token = self.current_token
@@ -83,10 +101,10 @@ class Parser:
             return ('float', float(token))
         elif token.isdigit():
             self.eat(token)
-            return ('num', int(token))
+            return ('int', int(token))
         elif token.startswith('"') and token.endswith('"'):
             self.eat(token)
-            return ('str', token[1:-1])
+            return ('string', token[1:-1])
         elif token == 'true':
             self.eat('true')
             return ('bool', True)
@@ -98,79 +116,91 @@ class Parser:
             return ('var', token)
         elif token == '(':
             self.eat('(')
-            result = self.expression()
+            expr = self.expression()
             self.eat(')')
-            return result
+            return expr
         else:
-            raise Exception(f'Unexpected token: {token}')
+            raise SyntaxError(f'Unexpected token: {token}')
 
 class Interpreter:
     def __init__(self):
         self.variables = {}
 
     def evaluate(self, node):
-        if node[0] == 'num':
-            return node[1]
-        elif node[0] == 'float':
-            return node[1]
-        elif node[0] == 'str':
-            return node[1]
-        elif node[0] == 'bool':
-            return node[1]
-        elif node[0] == 'var':
-            return self.variables.get(node[1], 0)
-        elif node[0] in ('+', '-', '*', '/', '==', '!=', '>', '<', '>=', '<='):
-            left = self.evaluate(node[1])
-            right = self.evaluate(node[2])
-            if node[0] == '+':
-                if isinstance(left, str) or isinstance(right, str):
-                    return str(left) + str(right)
-                return left + right
-            elif node[0] == '-':
-                return left - right
-            elif node[0] == '*':
-                return left * right
-            elif node[0] == '/':
-                return left / right
-            elif node[0] == '==':
-                return left == right
-            elif node[0] == '!=':
-                return left != right
-            elif node[0] == '>':
-                return left > right
-            elif node[0] == '<':
-                return left < right
-            elif node[0] == '>=':
-                return left >= right
-            elif node[0] == '<=':
-                return left <= right
-        elif node[0] == 'assign':
-            var_type, var_name, expr = node[1], node[2], node[3]
-            value = self.evaluate(expr)
-            self.variables[var_name] = value
-            return value
-        elif node[0] == 'input':
-            var_name = node[1]
-            user_input = input(f"Enter value for {var_name}: ")
-            self.variables[var_name] = user_input
-            return user_input
-        elif node[0] == 'print':
-            value = self.evaluate(node[1])
-            print(value)
-            return value
-        elif node[0] == 'wait':
-            duration = node[1]
-            time.sleep(duration)
-            return None
+        if isinstance(node, tuple):
+            op = node[0]
+            if op in ('int', 'float', 'string', 'bool'):
+                return node[1]
+            elif op == 'var':
+                if node[1] in self.variables:
+                    return self.variables[node[1]]
+                else:
+                    raise NameError(f'Undefined variable: {node[1]}')
+            elif op in ('+', '-', '*', '/', '==', '!=', '>', '<', '>=', '<='):
+                left = self.evaluate(node[1])
+                right = self.evaluate(node[2])
+                return self.perform_operation(op, left, right)
+            elif op == 'assign':
+                var_type, var_name, expr = node[1], node[2], node[3]
+                value = self.evaluate(expr)
+                self.variables[var_name] = self.cast_type(var_type, value)
+                return value
+            elif op == 'print':
+                value = self.evaluate(node[1])
+                print(value)
+                return value
+            elif op == 'input':
+                var_name, prompt = node[1], node[2]
+                user_input = input(prompt + ": ")
+                self.variables[var_name] = user_input
+                return user_input
+            elif op == 'wait':
+                duration = self.evaluate(node[1])
+                time.sleep(duration)
+                return None
         else:
-            raise Exception(f'Unknown node type: {node[0]}')
+            return node
+
+    def perform_operation(self, op, left, right):
+        if op == '+':
+            return left + right
+        elif op == '-':
+            return left - right
+        elif op == '*':
+            return left * right
+        elif op == '/':
+            return left / right
+        elif op == '==':
+            return left == right
+        elif op == '!=':
+            return left != right
+        elif op == '>':
+            return left > right
+        elif op == '<':
+            return left < right
+        elif op == '>=':
+            return left >= right
+        elif op == '<=':
+            return left <= right
+
+    def cast_type(self, var_type, value):
+        if var_type == 'int':
+            return int(value)
+        elif var_type == 'float':
+            return float(value)
+        elif var_type == 'bool':
+            return bool(value)
+        elif var_type == 'string':
+            return str(value)
+        else:
+            raise TypeError(f'Unknown type: {var_type}')
 
     def execute(self, code):
         lexer = Lexer(code)
         parser = Parser(lexer)
         ast = parser.parse()
-        for node in ast:
-            self.evaluate(node)
+        for statement in ast:
+            self.evaluate(statement)
 
     def run_file(self, filename):
         with open(filename, 'r') as file:
@@ -179,48 +209,30 @@ class Interpreter:
 
 def display_homepage():
     print("""
-Welcome to the Vinyl!
-[ build : 0.1 ]
-============================================================================
+Vinyl Interpreter [v0.2]
+==========================
+Usage: vinyl <filename.vy>
 
-Usage: vinyl.exe <filename.vy>
-
-Available Commands:
-----------------------------------------------------------------------------
-int <variable> = <value>     : Declare an integer variable
-float <variable> = <value>   : Declare a float variable
-bool <variable> = <value>    : Declare a boolean variable (true/false)
-string <variable> = <value>  : Declare a string variable
-print <expression>           : Print an expression
-wait <duration>              : Wait for specified duration (seconds)
-
-Example:
-----------------------------------------------------------------------------
-int a = 5
-float b = 10.2
-wait 2
-print a + b
-          
-============================================================================
-
+Features:
+- Variable declarations (int, float, bool, string)
+- Arithmetic and logical expressions
+- Input, print, and wait commands
+==========================
 """)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         display_homepage()
-        input("0x4\nPress enter to continue...")
-        sys.exit(0x4)
+        sys.exit(1)
 
     filename = sys.argv[1]
     if not filename.endswith('.vy'):
-        input("0x2")
-        sys.exit(0x2)
+        print("Error: Only '.vy' files are supported.")
+        sys.exit(2)
 
     interpreter = Interpreter()
     try:
         interpreter.run_file(filename)
-        input("0x4\nPress enter to continue...")
-        sys.exit(0x4)
     except Exception as e:
-        input(f'0x3\n{e}\nPress enter to continue...')
-        sys.exit(0x3)
+        print(f"Error: {e}")
+        sys.exit(3)
