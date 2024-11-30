@@ -1,4 +1,7 @@
-print "test"
 int a = 5
-int b = 6
+float b = 3.5
+string name = "World"
+print "Hello " + name
 print a + b
+wait 2
+print "Goodbye " + name 
